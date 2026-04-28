@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>奇偶小偵探：規律實驗室</title>
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --lab-blue: #2563eb;
+            --lab-green: #059669;
+            --lab-purple: #7c3aed;
+            --lab-yellow: #f59e0b;
+            --text-dark: #334155;
+            --white: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: "Microsoft JhengHei", "PingFang TC", sans-serif;
+            background-color: #e2e8f0;
+            color: var(--text-dark);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        #app {
+            width: 100%;
+            max-width: 500px;
+            height: 90vh;
+            max-height: 800px;
+            background: var(--white);
+            position: relative;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+            display: flex;
+            flex-direction: column;
+            border-radius: 24px;
+            overflow: hidden;
+            border: 8px solid #ffffff;
+        }
+
+        /* 頂部導航 */
+        .header {
+            padding: 20px 15px;
+            background: #f1f5f9;
+            border-bottom: 2px solid #e2e8f0;
+            text-align: center;
+        }
+
+        .progress-container {
+            width: 90%;
+            height: 10px;
+            background: #cbd5e1;
+            border-radius: 5px;
+            margin: 12px auto;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--lab-blue);
+            width: 0%;
+            transition: width 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            padding: 0 10px;
+            font-size: 1rem;
+            font-weight: bold;
+            color: var(--lab-blue);
+        }
+
+        /* 內容區 */
+        .content {
+            flex: 1;
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            overflow-y: auto;
+        }
+
+        .task-tag {
+            background: var(--lab-blue);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+
+        .task-title {
+            font-size: 1.6rem;
+            color: var(--text-dark);
+            margin-bottom: 8px;
+            font-weight: 900;
+        }
+
+        .task-desc {
+            font-size: 1.05rem;
+            color: #64748b;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+
+        /* 題目容器 */
+        .question-display {
+            width: 100%;
+            min-height: 160px;
+            background: #f8fafc;
+            border: 3px solid #e2e8f0;
+            border-radius: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 25px;
+            padding: 15px;
+            position: relative;
+        }
+
+        .q-item {
+            font-size: 2.8rem;
+            margin: 0 10px;
+            font-weight: bold;
+            color: var(--text-dark);
+        }
+
+        .shape-item {
+            width: 55px;
+            height: 55px;
+            margin: 0 6px;
+            transition: transform 0.3s;
+        }
+
+        /* 按鈕樣式 */
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            width: 100%;
+            margin-top: auto;
+        }
+
+        .btn {
+            padding: 18px 10px;
+            border: none;
+            border-radius: 18px;
+            font-size: 1.25rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .btn-opt { 
+            background: #ffffff; 
+            color: var(--text-dark); 
+            border: 2px solid #e2e8f0;
+            box-shadow: 0 4px 0 #e2e8f0;
+        }
+
+        .btn-opt:hover { background: #f8fafc; }
+        .btn-opt:active { transform: translateY(2px); box-shadow: 0 2px 0 #e2e8f0; }
+
+        .btn-primary { 
+            background: var(--lab-blue); 
+            color: white; 
+            box-shadow: 0 4px 0 #1d4ed8;
+        }
+
+        /* 回饋彈窗 */
+        .feedback-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 30px 20px;
+            border-top-left-radius: 30px;
+            border-top-right-radius: 30px;
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.1);
+            text-align: center;
+            transform: translateY(100%);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 100;
+        }
+
+        .feedback-overlay.active { transform: translateY(0); }
+
+        .feedback-msg { font-size: 1.3rem; margin-bottom: 15px; font-weight: bold; }
+        .hint-text { font-size: 1rem; color: #64748b; margin-bottom: 20px; background: #f1f5f9; padding: 12px; border-radius: 12px; }
+
+        /* 總結頁面專屬 */
+        .summary-note {
+            text-align: left;
+            background: #fdfaf1;
+            border-left: 5px solid var(--lab-yellow);
+            padding: 15px;
+            margin: 15px 0;
+            font-size: 0.95rem;
+            border-radius: 0 10px 10px 0;
+        }
+
+        /* 圖案定義 */
+        .circle { background: #f87171; border-radius: 50%; }
+        .square { background: #60a5fa; border-radius: 10px; }
+        .triangle { 
+            width: 0; height: 0; 
+            border-left: 28px solid transparent; 
+            border-right: 28px solid transparent; 
+            border-bottom: 55px solid #fbbf24;
+        }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <!-- 教學導航資訊 -->
+    <div id="ui-header" class="header hidden">
+        <div class="stats">
+            <span>🔬 階段: <span id="current-task-num">1</span>/3</span>
+            <span>⭐ 分數: <span id="score-display">0</span></span>
+        </div>
+        <div class="progress-container">
+            <div id="progress-bar" class="progress-bar"></div>
+        </div>
+    </div>
+
+    <!-- 啟動螢幕：建立情境 -->
+    <div id="screen-start" class="content" style="justify-content: center;">
+        <div style="font-size: 4rem;">🔬</div>
+        <h1 style="color: var(--lab-blue); margin: 10px 0;">奇偶小偵探<br>複習實驗室</h1>
+        <p class="task-desc">玩完遊戲後，你真的發現「數字的秘密」了嗎？<br>讓我們透過三個小實驗，把知識留在大腦裡吧！</p>
+        <button class="btn btn-primary" style="width: 200px;" onclick="Game.start()">開始整理知識</button>
+    </div>
+
+    <!-- 實驗進行區 -->
+    <div id="screen-game" class="content hidden">
+        <div class="task-tag" id="task-tag-name">觀察規律</div>
+        <div class="task-title" id="task-name">任務 1</div>
+        <div class="task-desc" id="task-instruction">載入中...</div>
+        
+        <div class="question-display" id="question-box"></div>
+
+        <div class="options-grid" id="options-box"></div>
+    </div>
+
+    <!-- 結算總結：教學意義與複習 -->
+    <div id="screen-result" class="content hidden">
+        <div style="font-size: 3rem;">🏆</div>
+        <h2 style="margin-bottom: 5px;">複習報告完成！</h2>
+        <p id="result-score-text" style="font-weight: bold; color: var(--lab-green);"></p>
+        
+        <div class="summary-note">
+            <strong>📋 偵探筆記：</strong>
+            <ul style="padding-left: 20px; margin: 10px 0;">
+                <li><strong>找規律：</strong> 觀察重疊出現的部分，就能預測下一個。</li>
+                <li><strong>分奇偶：</strong> 看數字最後一位。0, 2, 4, 6, 8 是偶數，其餘是奇數。</li>
+                <li><strong>變魔法：</strong> 兩個奇數相加會湊成對，變成偶數喔！</li>
+            </ul>
+        </div>
+        <p class="task-desc">你已經掌握了速戰數決的數學核心！</p>
+        <button class="btn btn-primary" style="width: 80%;" onclick="location.reload()">再做一次實驗</button>
+    </div>
+
+    <!-- 教學引導彈窗 -->
+    <div id="feedback-pop" class="feedback-overlay">
+        <div id="feedback-icon" style="font-size: 2.5rem; margin-bottom: 10px;"></div>
+        <div id="feedback-msg" class="feedback-msg"></div>
+        <div id="feedback-hint" class="hint-text"></div>
+        <button id="feedback-btn" class="btn btn-primary" style="width: 100%;" onclick="Game.next()">繼續實驗</button>
+    </div>
+</div>
+
+<script>
+/**
+ * 教學資料：針對二下學生的引導題目
+ */
+const GAME_DATA = [
+    {
+        tag: "規律觀察",
+        title: "實驗 1：發現隱藏律動",
+        instruction: "在遊戲中我們要快速反應，現在請靜下來觀察，問號處應該放什麼？",
+        type: "pattern",
+        questions: [
+            { 
+                items: ["circle", "circle", "square", "circle", "circle"], 
+                options: ["circle", "square"], 
+                answer: "square",
+                isShape: true,
+                hint: "你有發現是『圓圓方、圓圓方』的循環嗎？"
+            },
+            { 
+                items: ["5", "10", "15", "20"], 
+                options: ["21", "25"], 
+                answer: "25",
+                isShape: false,
+                hint: "這是 5 個一數的規律喔！"
+            }
+        ]
+    },
+    {
+        tag: "奇偶辨識",
+        title: "實驗 2：數字分類器",
+        instruction: "把數字分成「奇數(孤單)」和「偶數(成對)」。",
+        type: "classify",
+        questions: [
+            { items: ["18"], options: ["奇數", "偶數"], answer: "偶數", hint: "看最後一個字『8』，8可以兩兩成對，所以是偶數。" },
+            { items: ["33"], options: ["奇數", "偶數"], answer: "奇數", hint: "最後一個字是『3』，兩個人一對後會多出一個，是奇數。" }
+        ]
+    },
+    {
+        tag: "運算性質",
+        title: "實驗 3：奇偶變變變",
+        instruction: "不需要算出正確數字，試著猜猜看相加後的結果？",
+        type: "math",
+        questions: [
+            { items: ["奇數 + 奇數"], options: ["結果是奇數", "結果是偶數"], answer: "結果是偶數", hint: "兩個孤單的人(奇數)湊在一起，就變成了成對(偶數)！" },
+            { items: ["偶數 + 奇數"], options: ["結果是奇數", "結果是偶數"], answer: "結果是奇數", hint: "成對的人加一個孤單的人，最後還是一個孤單，所以是奇數。" }
+        ]
+    }
+];
+
+const Game = {
+    taskIdx: 0,
+    questionIdx: 0,
+    score: 0,
+    isCorrect: false,
+
+    start: function() {
+        document.getElementById('screen-start').classList.add('hidden');
+        document.getElementById('ui-header').classList.remove('hidden');
+        document.getElementById('screen-game').classList.remove('hidden');
+        this.renderQuestion();
+    },
+
+    renderQuestion: function() {
+        const task = GAME_DATA[this.taskIdx];
+        const q = task.questions[this.questionIdx];
+        
+        document.getElementById('task-tag-name').innerText = task.tag;
+        document.getElementById('task-name').innerText = task.title;
+        document.getElementById('task-instruction').innerText = task.instruction;
+        document.getElementById('current-task-num').innerText = this.taskIdx + 1;
+        
+        const totalQ = GAME_DATA.reduce((acc, t) => acc + t.questions.length, 0);
+        const currentQCount = GAME_DATA.slice(0, this.taskIdx).reduce((acc, t) => acc + t.questions.length, 0) + this.questionIdx;
+        document.getElementById('progress-bar').style.width = (currentQCount / totalQ * 100) + "%";
+
+        const box = document.getElementById('question-box');
+        box.innerHTML = "";
+        
+        q.items.forEach(item => {
+            const el = document.createElement('div');
+            if (q.isShape) {
+                el.className = "shape-item " + item;
+            } else {
+                el.className = "q-item";
+                el.innerText = item;
+            }
+            box.appendChild(el);
+        });
+
+        if (task.type === "pattern") {
+            const p = document.createElement('div');
+            p.className = "q-item";
+            p.style.color = "var(--lab-blue)";
+            p.innerText = "?";
+            box.appendChild(p);
+        }
+
+        const optBox = document.getElementById('options-box');
+        optBox.innerHTML = "";
+        q.options.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = "btn btn-opt";
+            if (q.isShape) {
+                const s = document.createElement('div');
+                s.className = "shape-item " + opt;
+                s.style.margin = "0 auto";
+                btn.appendChild(s);
+            } else {
+                btn.innerText = opt;
+            }
+            btn.onclick = () => this.check(opt, q.answer, q.hint);
+            optBox.appendChild(btn);
+        });
+    },
+
+    check: function(selected, correct, hint) {
+        const pop = document.getElementById('feedback-pop');
+        const msg = document.getElementById('feedback-msg');
+        const hintEl = document.getElementById('feedback-hint');
+        const icon = document.getElementById('feedback-icon');
+        const btn = document.getElementById('feedback-btn');
+        
+        pop.classList.add('active');
+        
+        if (selected === correct) {
+            this.isCorrect = true;
+            icon.innerText = "🌟";
+            msg.innerText = "正確觀察！";
+            msg.style.color = "var(--lab-green)";
+            hintEl.innerText = "沒錯！" + hint;
+            btn.innerText = "進行下一個實驗";
+            this.score += 10;
+            document.getElementById('score-display').innerText = this.score;
+        } else {
+            this.isCorrect = false;
+            icon.innerText = "💡";
+            msg.innerText = "再觀察看看...";
+            msg.style.color = "var(--lab-blue)";
+            hintEl.innerText = hint;
+            btn.innerText = "我知道了，再試一次";
+        }
+    },
+
+    next: function() {
+        document.getElementById('feedback-pop').classList.remove('active');
+        if (!this.isCorrect) return;
+
+        this.questionIdx++;
+        if (this.questionIdx >= GAME_DATA[this.taskIdx].questions.length) {
+            this.taskIdx++;
+            this.questionIdx = 0;
+        }
+
+        if (this.taskIdx >= GAME_DATA.length) {
+            this.showResult();
+        } else {
+            setTimeout(() => this.renderQuestion(), 300);
+        }
+    },
+
+    showResult: function() {
+        document.getElementById('screen-game').classList.add('hidden');
+        document.getElementById('progress-bar').style.width = "100%";
+        document.getElementById('screen-result').classList.remove('hidden');
+        document.getElementById('result-score-text').innerText = "你的實驗總積分：" + this.score;
+    }
+};
+</script>
+
+</body>
+</html>
